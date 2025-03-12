@@ -47,6 +47,10 @@ var rs3daily = {
     },
     "runesphere": {task: "Runesphere", url: "https://runescape.wiki/w/Runesphere", desc: "Hand in up to 1k rune dust for 25k xp"},
     "book-of-char": {task: "Book of Char", url: "https://runescape.wiki/w/The_Book_of_Char", desc: "Drop logs on the ground and use book for fast firemaking xp"},
+    "premier-xp": {task: "Premier XP boost", url: "https://runescape.wiki/w/Premier_artefact", desc: "10% bonus XP for an hour"},
+    "premier-porter": {task: "Premier Porter", url: "https://runescape.wiki/w/Premier_artefact", desc: "50% chance to act as a porter for an hour"},
+    "premier-aura": {task: "Premier Aura Reset", url: "https://runescape.wiki/w/Premier_artefact", desc: "Reset one aura once per day"},
+    "premier-slayer": {task: "Premier Slayer Aura", url: "https://runescape.wiki/w/Premier_artefact", desc: "20% hit chance on enemies < 15% health, 10% chance to not decrease slayer kill count"},
 };
 
 var rs3dailyshops = {
@@ -289,6 +293,7 @@ var rs3dailyshops = {
 };
 
 var rs3weekly = {
+    "thalmunds-wares": {task: "Thalmund's Wares", url: "https://runescape.wiki/w/Thalmund%27s_Wares", desc: "Merchant in City of Um"},
     "capping-clan-citadel": {task: "Capping Clan Citadel", url: "https://runescape.wiki/w/Clan_Citadel", desc: "Get skill xp, set xp bonus, make clan happy"},
     "charge-anachronia-totems": {task: "Charge Anachronia Totems", url: "https://runescape.wiki/w/Totem", desc: "Recharge totems weekly and optionally swap out"},
     "meg": {task: "Meg", url: "https://runescape.wiki/w/Meg#Meg's_questions", short: true, desc: "XP lamp and coins"},
@@ -959,7 +964,7 @@ const warbandsCounter = function() {
 
     let slotABMap = [41035,42284,42283,36918,35202,35203,40304,40306,40150,27234,42289,42290,41036,34823,41034,34918,42285,32708,54109];
     let slotCMap = [37758,35204,40308,27235,27236,35575,42282,28550,18778,25202,18782,32622,32716];
-    let runedate = Math.floor(((new Date() / 1000) - 1014768000) / 86400); // Days since 2002/02/27 
+    let runedate = Math.floor(((new Date() / 1000) - 1014768000) / 86400); // Days since 2002/02/27
 
     function avoidLimit(num) {
         let multi = [0, 2, 3, 5, 6, 9, 10, 13, 14, 15, 18, 19, 21, 22, 23, 25, 26, 27, 28, 30, 31, 32, 34];
@@ -1254,7 +1259,68 @@ const dataUpdatedCheck = function() {
     xmlhttp.send();
 }
 
+const enableBootstrapTooltips = function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.map(function (e) {
+        return new bootstrap.Tooltip(e)
+    })
+}
+
+/**
+ * Set up token modal popup with event listeners
+ */
+const importExportModal = function() {
+    let tokenButton = document.getElementById('token-button');
+    let tokenOutput = document.getElementById('token-output')
+    let tokenInput = document.getElementById('token-input');
+    let copyButton = document.getElementById('token-copy');
+    let importButton = document.getElementById('token-import');
+    
+    copyButton.addEventListener('click', function() {
+        navigator.clipboard.writeText(tokenOutput.value);
+    });
+    
+    tokenButton.addEventListener('click', function() {
+        tokenOutput.value = generateToken();
+    });
+    
+    tokenInput.addEventListener('focus', function() {
+       tokenInput.classList.remove("is-invalid");
+    });
+    
+    importButton.addEventListener('click', function() {
+        let inputToken;
+        let jsonObject;
+        
+        try {
+            inputToken = atob(tokenInput.value);
+            jsonObject = JSON.parse(inputToken);
+        } catch {
+            tokenInput.classList.add("is-invalid");
+            return;
+        }
+        
+        localStorage.clear();
+        
+        for(let key in jsonObject) {
+            storage.setItem(key, jsonObject[key]);
+        }
+
+        // Force a reload instead of manipulating the DOM to correctly display the tables
+        location.reload();
+    });
+}
+
+/**
+ * Take all the local application storage, turn it in to a JSON payload and Base64 encode it
+ */
+const generateToken = function() {
+    const items = { ...localStorage };
+    return btoa(JSON.stringify(items));
+}
+
 window.onload = function() {
+    enableBootstrapTooltips();    
     profiles();
     layouts();
 
@@ -1274,6 +1340,7 @@ window.onload = function() {
     warbandsCounter();
     merchantStock();
     dndOfTheWeek();
+    importExportModal();
 
     setInterval(function() {
         for (const timeFrame of timeframes) {
